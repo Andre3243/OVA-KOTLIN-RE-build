@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Configuración privada, archivos de origen y audio local
+# Configuración privada, archivos de origen y grabaciones adicionales
 .env
 .env.*
 !.env.example
@@ -24,6 +24,7 @@ dist-ssr
 *.7z
 *.rar
 /public/media/*.mp3
+!/public/media/conversacion.mp3
 /public/media/*.wav
 /public/media/*.m4a
 

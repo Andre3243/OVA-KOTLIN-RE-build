@@ -145,6 +145,6 @@ export function Landing({resume}:{resume?:string}){
         <Reveal><AudioLines aria-hidden="true" size={28}/><h2>Empieza por la introducción</h2><p>Conoce el encargo y escucha la conversación de bienvenida.</p><CourseCTA to="/guia/introduccion">Abrir la introducción</CourseCTA></Reveal>
       </section>
     </main>
-    <footer className="landingFooter"><div><b>Kotlin Lab</b><p>Proyecto académico del equipo SJD</p></div><Link to="/guia/referencias">Referentes del OVA</Link></footer>
+    <footer className="landingFooter"><div><b>Kotlin Lab</b><p>Equipo SJD · Sebastian Cufi, Deimy Vanegas y Jhonny Acosta</p></div><Link to="/guia/referencias">Referentes del OVA</Link></footer>
   </div>
 }

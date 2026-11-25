@@ -23,4 +23,4 @@ npm run dev
 npm run build
 ```
 
-La introducción incluye una versión de lectura. Si tienes autorización para usar el pódcast, puedes colocar una copia local en `public/media/conversacion.mp3`. El audio local está excluido de Git.
+La introducción incluye el pódcast de bienvenida y un resumen para lectura.

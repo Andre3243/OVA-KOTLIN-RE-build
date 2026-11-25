@@ -163,7 +163,7 @@ export default function Course(){
             </Routes>
             </AnimatedPage>
           </AnimatePresence>
-          <footer><b>Kotlin Lab</b><p>Proyecto académico del equipo SJD</p></footer>
+          <footer><b>Kotlin Lab</b><p>Equipo SJD · Sebastian Cufi, Deimy Vanegas y Jhonny Acosta</p></footer>
         </main>
       </div>
     </div>
