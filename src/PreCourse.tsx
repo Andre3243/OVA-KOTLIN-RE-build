@@ -1,45 +1,137 @@
-import { useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { Camera, ClipboardCheck, Code2 } from 'lucide-react'
-import { easeOut, gentleHover, gentleTap, revealTransition, springTransition } from './motionPresets'
+import { useState, type ReactNode } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { Camera, CheckCircle2, ClipboardCheck, Code2, Cpu, Sparkles } from 'lucide-react'
+import {
+  gentleHover,
+  gentleTap,
+  pillSpring,
+  revealTransition,
+  silkEase,
+  springTransition,
+  staggerContainerVariants,
+  staggerItemVariants,
+} from './motionPresets'
 
 const scenes = [
-  { tab:'El encargo', title:'Un pedido escrito a mano', body:'Marta quiere que sus clientes puedan tomarle una foto a su pedido y enviarlo desde el celular. ¿Qué necesita su app para hacerlo?', icon:Camera },
-  { tab:'Las herramientas', title:'De la idea al código', body:'Aprenderás en qué se diferencia una app móvil, qué aporta Kotlin y cómo se usa Android Studio para construir y probar una aplicación.', icon:Code2 },
-  { tab:'La práctica', title:'Tus decisiones cuentan', body:'Después de las lecciones harás un diagnóstico sin nota. Luego conectarás conceptos, explorarás el IDE y ayudarás a Marta a decidir cómo construir su app.', icon:ClipboardCheck },
-]
+  {
+    tab: 'El encargo',
+    title: 'Un pedido escrito a mano',
+    body: 'Marta quiere que sus clientes puedan tomarle una foto a su pedido y enviarlo desde el celular sin digitarlo. ¿Qué necesita su app para lograrlo sin perder pedidos?',
+    icon: Camera,
+    flow: ['Foto del pedido', 'Permiso de cámara', 'Envío seguro a Marta'],
+  },
+  {
+    tab: 'Las herramientas',
+    title: 'De la idea al código real',
+    body: 'Aprenderás qué diferencia a un teléfono móvil, cómo Kotlin evita errores por valores nulos y cómo Android Studio convierte tu código en un instalable.',
+    icon: Code2,
+    flow: ['Pedido.kt', 'Gradle Build', 'Emulador Pixel 8'],
+  },
+  {
+    tab: 'La práctica',
+    title: 'Tus decisiones cuentan',
+    body: 'Medirás tus presaberes sin nota, conectarás cables conceptuales, explorarás el IDE, asesorarás a Marta en vivo y firmarás tu propia APK simbólica.',
+    icon: ClipboardCheck,
+    flow: ['Diagnóstico', 'Retos interactivos', 'APK firmada 5.0'],
+  },
+] as const
 
-export function PreCourse({children}:{children:React.ReactNode}){
-  const [index,setIndex]=useState(0)
-  const reduced=useReducedMotion()
-  const scene=scenes[index]
-  const Icon=scene.icon
-  return <section className="preCourse" id="antes-del-ova" aria-labelledby="pre-title">
-    <motion.div className="preCourseCopy"
-      initial={reduced?false:{opacity:0,y:22}} whileInView={{opacity:1,y:0}} viewport={{once:true,amount:.22}} transition={revealTransition}>
-      <p className="landingKicker"><span/> ANTES DEL OVA</p>
-      <h2 id="pre-title"><span>Una idea.</span><span>Una app Android.</span></h2>
-      <motion.p initial={reduced?false:{opacity:0,y:12}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{...revealTransition,delay:reduced?0:.14}}>
-        Conoce el proyecto que te acompañará en el curso y lo que harás para resolverlo.
-      </motion.p>
-      {children}
-    </motion.div>
-    <motion.div className="preCourseStory"
-      initial={reduced?false:{opacity:0,x:19}} whileInView={{opacity:1,x:0}} viewport={{once:true,amount:.24}} transition={{...revealTransition,delay:reduced?0:.1}}>
-      <div className="preCourseChoices" aria-label="Escenas de la introducción">
-        {scenes.map((item,i)=><motion.button type="button" key={item.tab} aria-pressed={index===i} onClick={()=>setIndex(i)}
-          whileHover={reduced?undefined:gentleHover} whileTap={reduced?undefined:gentleTap} transition={springTransition}>{item.tab}</motion.button>)}
-      </div>
-      <div className="preCourseStage" aria-live="polite">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={index} initial={reduced?false:{opacity:0,y:11}} animate={{opacity:1,y:0}} exit={reduced?undefined:{opacity:0,y:-7}}
-            transition={{duration:reduced?0:.25,ease:easeOut}}>
-            <span className="preCourseIcon"><Icon size={28} aria-hidden="true"/></span>
-            <h3>{scene.title}</h3>
-            <p>{scene.body}</p>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-    </motion.div>
-  </section>
+export function PreCourse({ children }: { children: ReactNode }) {
+  const [index, setIndex] = useState(0)
+  const scene = scenes[index]
+  const Icon = scene.icon
+
+  return (
+    <section className="preCourse" id="antes-del-ova" aria-labelledby="pre-title">
+      <motion.div
+        className="preCourseCopy"
+        initial={{ opacity: 0, y: 28 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.22, margin: '0px 0px -70px 0px' }}
+        transition={revealTransition}
+      >
+        <p className="landingKicker">
+          <span /> ANTES DEL OVA
+        </p>
+        <h2 id="pre-title">
+          <span>Una idea real.</span>
+          <span>Una app Android.</span>
+        </h2>
+        <p>Conoce el proyecto práctico que guiará tus decisiones durante todo el recorrido y explora sus tres momentos.</p>
+        {children}
+      </motion.div>
+
+      <motion.div
+        className="preCourseStory"
+        initial={{ opacity: 0, y: 28, scale: 0.985 }}
+        whileInView={{ opacity: 1, y: 0, scale: 1 }}
+        viewport={{ once: true, amount: 0.22, margin: '0px 0px -70px 0px' }}
+        transition={{ ...revealTransition, delay: 0.1 }}
+      >
+        <div className="preCourseChoices" role="group" aria-label="Escenas de la introducción">
+          {scenes.map((item, i) => {
+            const active = index === i
+            return (
+              <motion.button
+                type="button"
+                key={item.tab}
+                aria-pressed={active}
+                onClick={() => setIndex(i)}
+                whileHover={gentleHover}
+                whileTap={gentleTap}
+                transition={springTransition}
+              >
+                {active && <motion.span layoutId="precourse-tab-pill" className="preCourseTabBg" transition={pillSpring} />}
+                <span className="preCourseTabLabel">{item.tab}</span>
+              </motion.button>
+            )
+          })}
+        </div>
+
+        <div className="preCourseStage" aria-live="polite">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: silkEase }}
+            >
+              <div className="preCourseStageHead">
+                <motion.span
+                  className="preCourseIcon"
+                  initial={{ scale: 0.85, rotate: -6 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={springTransition}
+                >
+                  <Icon size={26} aria-hidden="true" />
+                </motion.span>
+                <div>
+                  <span className="preCourseStepTag">PASO 0{index + 1} DE 03</span>
+                  <h3>{scene.title}</h3>
+                </div>
+              </div>
+              <p>{scene.body}</p>
+
+              <motion.div
+                className="preCourseFlow"
+                variants={staggerContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                {scene.flow.map((chip, chipIdx) => (
+                  <motion.span key={chip} className="preCourseFlowChip" variants={staggerItemVariants}>
+                    {chipIdx === 0 && <Sparkles size={13} aria-hidden="true" />}
+                    {chipIdx === 1 && <Cpu size={13} aria-hidden="true" />}
+                    {chipIdx === 2 && <CheckCircle2 size={13} aria-hidden="true" />}
+                    {chip}
+                  </motion.span>
+                ))}
+              </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </section>
+  )
 }

@@ -1,38 +1,374 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { RevealBlock, TextReveal } from './LearningUI'
+import { motion } from 'motion/react'
+import { BookOpen, Compass, ExternalLink, FileAudio, Gauge, Layers3, Sparkles, Video } from 'lucide-react'
+import {
+  AnimatedAccordion,
+  CalloutBox,
+  ContentCard,
+  RevealBlock,
+  StaggerGroup,
+  StaggerItem,
+  TextReveal,
+} from './LearningUI'
+import { pillSpring } from './motionPresets'
+import {
+  apaReferences,
+  competencies,
+  contentOutcomes,
+  contentOverviewSteps,
+  guidePages,
+  learningPhases,
+  studyRecommendations,
+  studyTimes,
+} from './content/guideContent'
+import { INTRO_VIDEO_URL, PODCAST_META, PODCAST_TRANSCRIPT } from './content/media'
 
-const pages = [
-  {id:'introduccion', title:'Introducción', summary:'El encargo que da sentido al curso'},
-  {id:'metodologia', title:'Metodología', summary:'Cómo estudiar y comprobar tu avance'},
-  {id:'contenidos', title:'Contenidos', summary:'Del dispositivo al proyecto Android'},
-  {id:'referencias', title:'Referentes', summary:'Documentación y lecturas del OVA'},
-]
-
-export function GuideNav(){
-  return <section className="guideNav"><small>ANTES DE EMPEZAR</small><h2>Guía del estudiante</h2><div>{pages.map(p=><Link key={p.id} to={'/guia/'+p.id}><strong>{p.title}</strong><span>{p.summary}</span></Link>)}</div></section>
+function toEmbedUrl(rawUrl: string): { kind: 'iframe' | 'video'; src: string } | null {
+  const trimmed = rawUrl.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed, window.location.href)
+    if (parsed.hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v')
+      if (v) return { kind: 'iframe', src: `https://www.youtube.com/embed/${v}?rel=0` }
+      if (parsed.pathname.startsWith('/embed/')) return { kind: 'iframe', src: trimmed }
+    }
+    if (parsed.hostname === 'youtu.be') {
+      const id = parsed.pathname.replace(/^\//, '')
+      if (id) return { kind: 'iframe', src: `https://www.youtube.com/embed/${id}?rel=0` }
+    }
+    if (parsed.hostname.includes('vimeo.com') && !parsed.hostname.includes('player.vimeo.com')) {
+      const id = parsed.pathname.split('/').filter(Boolean).pop()
+      if (id && /^\d+$/.test(id)) return { kind: 'iframe', src: `https://player.vimeo.com/video/${id}` }
+    }
+    if (parsed.hostname.includes('drive.google.com')) {
+      const match = parsed.pathname.match(/\/file\/d\/([^/]+)/)
+      if (match) return { kind: 'iframe', src: `https://drive.google.com/file/d/${match[1]}/preview` }
+    }
+  } catch {
+    // Ruta local relativa reproducida con <video>.
+  }
+  return { kind: 'video', src: trimmed }
 }
 
-const phases=[
- ['Apropiación conceptual','Lee las tres lecciones, escucha el pódcast y modifica el ejemplo de Kotlin. Anticipa la salida del programa antes de ejecutarlo.'],
- ['Diagnóstico','Al terminar la lección de Android Studio, responde cinco preguntas. El resultado te orienta sobre los temas que conviene reforzar.'],
- ['Verificación y autoevaluación','Relaciona términos, localiza herramientas en el IDE y explica a Marta cómo construirías su app. Usa las pistas y repite las decisiones que necesites.'],
- ['Evaluación final','Responde cinco preguntas en un máximo de quince minutos. Se aprueba con tres aciertos. Compara tu resultado con el diagnóstico y revisa las explicaciones.']
-]
-function WelcomeAudio(){
-  const [unavailable,setUnavailable]=useState(false)
-  if(unavailable)return <p>El audio no está disponible. Puedes leer el resumen de la bienvenida.</p>
-  return <audio controls preload="none" onError={()=>setUnavailable(true)} src={import.meta.env.BASE_URL+'media/conversacion.mp3'}/>
+function IntroVideo() {
+  const media = toEmbedUrl(INTRO_VIDEO_URL)
+  if (!media) return null
+  return (
+    <ContentCard title="Video de bienvenida · ¿De qué trata este OVA?" icon={Video}>
+      <p className="mediaSub">
+        Presentación audiovisual de los primeros pasos en el desarrollo móvil con Kotlin y Android Studio.
+      </p>
+      <div className="videoFrameWrap">
+        {media.kind === 'iframe' ? (
+          <iframe
+            className="courseVideoFrame"
+            src={media.src}
+            title="Video introductorio del OVA: Primeros pasos en la programación móvil con Kotlin"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        ) : (
+          <video className="courseVideoNative" controls preload="metadata" src={media.src}>
+            Tu navegador no admite reproducción de video integrada.
+          </video>
+        )}
+      </div>
+      <p className="videoExternalFallback">
+        <a href={INTRO_VIDEO_URL} target="_blank" rel="noreferrer" className="inlineLessonLink">
+          Ver directamente en YouTube <ExternalLink size={14} aria-hidden="true" />
+          <span className="visuallyHidden"> (se abre en una nueva pestaña)</span>
+        </a>
+      </p>
+    </ContentCard>
+  )
 }
 
-export function Guide(){
-  const {section}=useParams()
-  const index=Math.max(0,pages.findIndex(p=>p.id===section))
-  return <article className="lessonBody"><p className="meta">Guía del estudiante</p><TextReveal>{pages[index].title}</TextReveal><nav className="guideTabs" aria-label="Guía del estudiante">{pages.map((p,k)=><Link key={p.id} aria-current={k===index?'page':undefined} to={'/guia/'+p.id}>{p.title}</Link>)}</nav>
-  <RevealBlock>
-  {index===0&&<><h2>¿Cómo pasa una idea a la pantalla del teléfono?</h2><p className="lead">Marta recibe pedidos escritos a mano en su panadería. Quiere que sus clientes puedan fotografiar un pedido y enviarlo desde el celular. Ese encargo nos acompañará durante el curso.</p><p>Desarrollar una aplicación móvil implica decidir cómo interactúa una persona con una pantalla pequeña, qué recursos del dispositivo necesita y cómo comprobar que funciona. Aquí trabajarás con Android, el lenguaje Kotlin y el entorno Android Studio.</p><h2>Qué sabrás hacer al terminar</h2><ul><li>Distinguir las restricciones de una app móvil y justificar un enfoque de desarrollo.</li><li>Leer una clase de datos sencilla en Kotlin y reconocer qué ocurre si falta un valor.</li><li>Ubicar las herramientas de edición, ejecución y depuración y explicar cómo se entrega una app.</li></ul><h3>Una conversación para empezar</h3><details><summary>Resumen de la bienvenida</summary><p>El curso conecta tres decisiones: dónde funcionará una app móvil, qué papel tiene Kotlin y qué herramientas de Android Studio sirven para construirla y probarla.</p></details><WelcomeAudio/></>}
-  {index===1&&<><p className="lead">Este OVA está pensado para estudiar de forma autónoma. Puedes dividir el recorrido en varias sesiones y retomar los módulos que hayas marcado como revisados en este navegador.</p><h2>Cuatro fases de aprendizaje</h2><ol className="phases">{phases.map(([title,body])=><li key={title}><h3>{title}</h3><p>{body}</p></li>)}</ol><h2>Tiempo y recomendaciones</h2><p>Reserva unos 50 minutos como referencia. El diagnóstico admite hasta 10 minutos y la evaluación hasta 15. La práctica y la revisión pueden llevar más tiempo.</p><p>Ten a mano un cuaderno. Tras cada práctica, anota una decisión que cambiarías y el motivo. Puedes probar el código en Kotlin Playground desde el navegador.</p></>}
-  {index===2&&<><p className="lead">Tres preguntas organizan el contenido. Cada respuesta te prepara para una decisión en el encargo de la panadería.</p>{[['ecosistema-movil','¿Dónde funciona la aplicación?','Dispositivos, sensores, batería, memoria y enfoques de desarrollo.'],['kotlin','¿Con qué lenguaje se escribe?','Tipos, seguridad ante nulos, interoperabilidad con Java y clases de datos.'],['android-studio','¿Cómo se construye y se prueba?','Editor, vista previa, Gradle, emulador y Logcat.']].map(([id,t,p])=><section className="lab" key={id}><h2>{t}</h2><p>{p}</p><Link to={'/ruta/'+id}>Abrir lección ↗</Link></section>)}</>}
-  {index===3&&<><h2>Fuentes para profundizar</h2><p><a href="https://developer.android.com/kotlin">Android Developers · Kotlin para Android</a><br/>Guías para conectar el lenguaje con un proyecto Android.</p><p><a href="https://developer.android.com/studio/intro">Android Studio · Introducción al entorno</a><br/>Referencia para reconocer el editor y sus herramientas.</p><p><a href="https://kotlinlang.org/docs/home.html">JetBrains · Documentación de Kotlin</a><br/>Consulta los ejemplos de clases de datos y tipos anulables.</p><h2>Lecturas del curso original</h2><ul><li>Jemerov e Isakova, <i>Kotlin in Action</i>.</li><li>Forrester, Boudjnah, Dumbravan y Tigcal, <i>How to Build Android Apps with Kotlin</i>.</li><li>Phillips, Stewart, Marsicano y Gardner, <i>Android Programming: The Big Nerd Ranch Guide</i>.</li></ul></>}
-  </RevealBlock></article>
+function WelcomeAudio() {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [unavailable, setUnavailable] = useState(false)
+  const [speed, setSpeed] = useState<number>(1)
+
+  function handleSpeedChange(nextSpeed: number) {
+    setSpeed(nextSpeed)
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed
+    }
+  }
+
+  return (
+    <ContentCard title={PODCAST_META.title} icon={FileAudio}>
+      <p className="mediaSub">
+        {PODCAST_META.speakers} · Duración aproximada: <strong>{PODCAST_META.durationLabel}</strong>
+      </p>
+
+      {unavailable ? (
+        <p className="audioFallback" role="status">
+          El archivo de audio local no está disponible en este momento. Puedes continuar leyendo la transcripción completa aquí debajo sin bloquear tu avance.
+        </p>
+      ) : (
+        <div className="audioControlsRow">
+          <audio
+            ref={audioRef}
+            controls
+            preload="metadata"
+            onLoadedMetadata={() => {
+              if (audioRef.current) audioRef.current.playbackRate = speed
+            }}
+            onError={() => setUnavailable(true)}
+            src={import.meta.env.BASE_URL + PODCAST_META.srcPath}
+          />
+          <div className="speedControls" role="group" aria-label="Velocidad de reproducción del pódcast">
+            <span className="speedLabel">
+              <Gauge size={15} aria-hidden="true" /> Velocidad:
+            </span>
+            {PODCAST_META.speeds.map((rate) => (
+              <button
+                key={rate}
+                type="button"
+                className="speedBtn"
+                aria-pressed={speed === rate}
+                onClick={() => handleSpeedChange(rate)}
+              >
+                {rate}x
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <details className="transcriptBox">
+        <summary>Leer transcripción y momentos clave de la conversación</summary>
+        <ol className="transcriptList">
+          {PODCAST_TRANSCRIPT.map((entry) => (
+            <li key={entry.time}>
+              <span className="transcriptTime">{entry.time}</span>
+              <div>
+                <strong>{entry.speaker}</strong>
+                <p>{entry.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </ContentCard>
+  )
+}
+
+export function Guide() {
+  const { section } = useParams()
+  const index = Math.max(0, guidePages.findIndex((p) => p.id === section))
+  const [activePiece, setActivePiece] = useState(0)
+
+  return (
+    <article className="lessonBody">
+      <p className="meta">Guía del estudiante</p>
+      <TextReveal>{guidePages[index].title}</TextReveal>
+      <nav className="guideTabs" aria-label="Guía del estudiante">
+        {guidePages.map((p, k) => {
+          const isCurrent = k === index
+          return (
+            <Link key={p.id} aria-current={isCurrent ? 'page' : undefined} to={'/guia/' + p.id}>
+              {isCurrent && <motion.span layoutId="guide-tab-pill" className="guideTabActiveBg" transition={pillSpring} />}
+              <span className="guideTabLabel">{p.title}</span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div>
+        {index === 0 && (
+          <>
+            <div className="wideCardGrid twoCols">
+              <ContentCard title="¿Cómo pasa una idea a la pantalla del teléfono?" icon={Compass} delay={0.04}>
+                <p>
+                  Android impulsa miles de millones de dispositivos móviles en el mundo. Este OVA te introduce paso a paso en los conceptos, el lenguaje <strong>Kotlin</strong> y el entorno profesional <strong>Android Studio</strong>.
+                </p>
+                <p>
+                  Durante el recorrido acompañaremos a <strong>Marta</strong>, dueña de la <em>Panadería La Espiga</em>, quien recibe pedidos escritos a mano y quiere que sus clientes puedan fotografiarlos y enviarlos desde el celular.
+                </p>
+              </ContentCard>
+
+              <ContentCard title="Qué sabrás hacer al terminar" icon={Sparkles} delay={0.12}>
+                <ul className="cardBulletList">
+                  <li>Distinguir las restricciones propias de un dispositivo móvil y justificar cuándo elegir desarrollo nativo.</li>
+                  <li>Leer una clase de datos en Kotlin, aprovechar <code>Null Safety</code> y reconocer sus ventajas frente a Java.</li>
+                  <li>Ubicar las herramientas de Android Studio y explicar cómo intervienen <code>Activity</code>, <code>AndroidManifest.xml</code>, Gradle y el archivo <code>.apk</code>.</li>
+                </ul>
+              </ContentCard>
+            </div>
+
+            <IntroVideo />
+            <WelcomeAudio />
+          </>
+        )}
+
+        {index === 1 && (
+          <>
+            <RevealBlock delay={0.03}>
+              <p className="lead">
+                Este OVA está diseñado para estudiar de forma autónoma y a tu propio ritmo. Puedes dividir el recorrido en varias sesiones: tu progreso y tus puntajes quedan guardados en este navegador.
+              </p>
+            </RevealBlock>
+
+            <RevealBlock delay={0.08}>
+              <section className="approachSection">
+                <h2>Competencias del curso</h2>
+                <div className="wideCardGrid twoCols">
+                  {competencies.map((comp) => (
+                    <AnimatedAccordion key={comp.kind} title={`Competencia · ${comp.kind}`} icon={BookOpen} initialOpen>
+                      <p>{comp.description}</p>
+                    </AnimatedAccordion>
+                  ))}
+                </div>
+              </section>
+            </RevealBlock>
+
+            <RevealBlock delay={0.12}>
+              <section className="lab">
+                <small>RUTA METODOLÓGICA</small>
+                <h2>Cuatro fases de aprendizaje</h2>
+                <StaggerGroup className="phases phasesGrid">
+                  {learningPhases.map((phase) => (
+                    <StaggerItem key={phase.title}>
+                      <div className="phaseStepInner">
+                        <h3>{phase.title}</h3>
+                        <p>{phase.body}</p>
+                      </div>
+                    </StaggerItem>
+                  ))}
+                </StaggerGroup>
+              </section>
+            </RevealBlock>
+
+            <div className="wideCardGrid twoCols">
+              <RevealBlock delay={0.06}>
+                <section className="lab">
+                  <small>PLANIFICACIÓN · 50 MINUTOS</small>
+                  <h2>Tiempos estimados de referencia</h2>
+                  <div className="timeTableWrap">
+                    <table className="studyTable">
+                      <thead>
+                        <tr>
+                          <th scope="col">Etapa</th>
+                          <th scope="col">Tiempo</th>
+                          <th scope="col">Detalle</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studyTimes.map((row) => (
+                          <tr key={row.stage}>
+                            <td><strong>{row.stage}</strong></td>
+                            <td className="monoCell">{row.minutes}</td>
+                            <td>{row.detail}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </RevealBlock>
+
+              <RevealBlock delay={0.14}>
+                <section className="lab">
+                  <small>ESTUDIO AUTÓNOMO</small>
+                  <h2>Recomendaciones prácticas</h2>
+                  <ul className="cardBulletList">
+                    {studyRecommendations.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                </section>
+              </RevealBlock>
+            </div>
+
+            <CalloutBox title="¿Tengo que hacerlo en una sola sesión?">
+              <p>
+                No es necesario: los tiempos son orientativos. Puedes pausar cuando quieras y retomar exactamente en la última sección visitada desde la portada.
+              </p>
+            </CalloutBox>
+          </>
+        )}
+
+        {index === 2 && (
+          <>
+            <RevealBlock delay={0.03}>
+              <p className="lead">
+                Una aplicación Android se construye articulando tres piezas: <strong>el dispositivo</strong>, <strong>el lenguaje</strong> y <strong>la herramienta</strong>. Cada respuesta te prepara para una decisión en el encargo de la panadería.
+              </p>
+            </RevealBlock>
+
+            <StaggerGroup className="wideCardGrid threeCols">
+              {contentOverviewSteps.map((item, idx) => (
+                <StaggerItem key={item.step}>
+                  <section
+                    className={`lab pieceCard${activePiece === idx ? ' is-highlighted' : ''}`}
+                    onMouseEnter={() => setActivePiece(idx)}
+                  >
+                    <small>{item.step}</small>
+                    <h2>{item.question}</h2>
+                    <p className="pieceSubtitle">{item.lessonTitle}</p>
+                    <p>{item.summary}</p>
+                    <Link className="inlineLessonLink" to={item.lessonPath}>
+                      Abrir lección ↗
+                    </Link>
+                  </section>
+                </StaggerItem>
+              ))}
+            </StaggerGroup>
+
+            <ContentCard title="Al terminar los contenidos podrás" icon={Layers3}>
+              <ul className="cardBulletList">
+                {contentOutcomes.map((outcome) => (
+                  <li key={outcome}>{outcome}</li>
+                ))}
+              </ul>
+            </ContentCard>
+
+            <CalloutBox title="Después de las lecciones">
+              <p>
+                Al finalizar Android Studio realizarás el <strong>Diagnóstico de presaberes</strong> y pasarás a los talleres interactivos: pareo de conceptos, mapa del IDE, escenario con Marta y evaluación final.
+              </p>
+            </CalloutBox>
+          </>
+        )}
+
+        {index === 3 && (
+          <>
+            <RevealBlock delay={0.03}>
+              <p className="lead">
+                Documentación técnica oficial y bibliografía académica empleadas en el curso (formato APA). Los enlaces se abren en una nueva pestaña.
+              </p>
+            </RevealBlock>
+            <RevealBlock delay={0.08}>
+              <section className="lab">
+                <small>REFERENTES DEL OVA · FORMATO APA</small>
+                <h2>Fuentes oficiales y lecturas recomendadas</h2>
+                <StaggerGroup className="apaGridCards">
+                  {apaReferences.map((ref) => (
+                    <StaggerItem key={ref.authors + ref.title} className="apaCardItem">
+                      <span>
+                        {ref.authors} ({ref.year}). <i>{ref.title}</i>. {ref.source}{' '}
+                      </span>
+                      {ref.url && (
+                        <span className="apaLinkRow">
+                          <a href={ref.url} target="_blank" rel="noreferrer">
+                            {ref.url} <ExternalLink size={14} aria-hidden="true" />
+                            <span className="visuallyHidden"> (se abre en una nueva pestaña)</span>
+                          </a>
+                          {ref.consulted && <small className="refDate"> · {ref.consulted}</small>}
+                        </span>
+                      )}
+                    </StaggerItem>
+                  ))}
+                </StaggerGroup>
+              </section>
+            </RevealBlock>
+          </>
+        )}
+      </div>
+    </article>
+  )
 }
