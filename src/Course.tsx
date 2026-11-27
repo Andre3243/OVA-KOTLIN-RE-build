@@ -289,7 +289,7 @@ function Lesson() {
                   </button>
                 </div>
                 <p>
-                  <a href="https://play.kotlinlang.org/" target="_blank" rel="noreferrer" className="inlineLessonLink">
+                  <a href="https://play.kotlinlang.org/" target="_blank" rel="noopener noreferrer" className="inlineLessonLink">
                     Probar el ejemplo en Kotlin Playground <ExternalLink size={15} aria-hidden="true" />
                     <span className="visuallyHidden"> (se abre en una nueva pestaña)</span>
                   </a>
@@ -451,18 +451,31 @@ function FrozenRouteStage({
   )
 }
 
+function readValidScore(key: string): number | 'Pendiente' {
+  const saved = read<unknown>(key, 'Pendiente')
+  if (typeof saved === 'number' && Number.isInteger(saved) && saved >= 0 && saved <= 5) {
+    return saved
+  }
+  return 'Pendiente'
+}
+
 export default function Course() {
   const [visited, setVisited] = useState<string[]>(() => {
     const saved = read<unknown>('ruta.vista', [])
-    return Array.isArray(saved) ? saved.filter((item): item is string => typeof item === 'string') : []
+    if (!Array.isArray(saved)) return []
+    const validPaths = new Set(sections.map((s) => s.path))
+    return Array.from(new Set(saved.filter((item): item is string => typeof item === 'string' && validPaths.has(item))))
   })
-  const [desktopMenu, setDesktopMenu] = useState(() => read('ruta.panel', true))
+  const [desktopMenu, setDesktopMenu] = useState<boolean>(() => {
+    const saved = read<unknown>('ruta.panel', true)
+    return typeof saved === 'boolean' ? saved : true
+  })
   const [mobileMenu, setMobileMenu] = useState(false)
   const [compact, setCompact] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width:920px)').matches,
   )
-  const [diagnosis, setDiagnosis] = useState<number | string>(() => read('ruta.diag', 'Pendiente'))
-  const [examScore, setExamScore] = useState<number | string>(() => read('ruta.final', 'Pendiente'))
+  const [diagnosis, setDiagnosis] = useState<number | string>(() => readValidScore('ruta.diag'))
+  const [examScore, setExamScore] = useState<number | string>(() => readValidScore('ruta.final'))
 
   const menu = compact ? mobileMenu : desktopMenu
   const toggle = useRef<HTMLButtonElement>(null)

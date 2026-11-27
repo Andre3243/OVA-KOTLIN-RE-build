@@ -11,9 +11,10 @@ node_modules
 dist
 dist-ssr
 backup-original
+docs
 *.local
 
-# Configuración privada, archivos de origen y grabaciones adicionales
+# Configuración privada, certificados, comprimidos y ejecutables/scripts
 .env
 .env.*
 !.env.example
@@ -24,6 +25,16 @@ backup-original
 *.zip
 *.7z
 *.rar
+*.exe
+*.dll
+*.msi
+*.bat
+*.cmd
+*.ps1
+*.vbs
+*.sh
+*.jar
+*.apk
 /public/media/*.mp3
 !/public/media/conversacion.mp3
 /public/media/*.wav

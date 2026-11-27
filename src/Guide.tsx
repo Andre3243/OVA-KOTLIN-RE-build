@@ -24,32 +24,46 @@ import {
 } from './content/guideContent'
 import { INTRO_VIDEO_URL, PODCAST_META, PODCAST_TRANSCRIPT } from './content/media'
 
+const YT_ID_RE = /^[\w-]{11}$/
+const LOCAL_VIDEO_RE = /^\.?\/?media\/[\w.-]+\.(mp4|webm)$/i
+
 function toEmbedUrl(rawUrl: string): { kind: 'iframe' | 'video'; src: string } | null {
   const trimmed = rawUrl.trim()
   if (!trimmed) return null
+  if (LOCAL_VIDEO_RE.test(trimmed)) {
+    return { kind: 'video', src: trimmed }
+  }
   try {
-    const parsed = new URL(trimmed, window.location.href)
-    if (parsed.hostname.includes('youtube.com')) {
+    const parsed = new URL(trimmed)
+    if (parsed.protocol !== 'https:') return null
+
+    if (parsed.hostname === 'www.youtube.com' || parsed.hostname === 'youtube.com') {
       const v = parsed.searchParams.get('v')
-      if (v) return { kind: 'iframe', src: `https://www.youtube.com/embed/${v}?rel=0` }
-      if (parsed.pathname.startsWith('/embed/')) return { kind: 'iframe', src: trimmed }
+      if (v && YT_ID_RE.test(v)) {
+        return { kind: 'iframe', src: `https://www.youtube-nocookie.com/embed/${v}?rel=0` }
+      }
+      const embedMatch = parsed.pathname.match(/^\/embed\/([\w-]{11})$/)
+      if (embedMatch) {
+        return { kind: 'iframe', src: `https://www.youtube-nocookie.com/embed/${embedMatch[1]}?rel=0` }
+      }
+      return null
     }
     if (parsed.hostname === 'youtu.be') {
       const id = parsed.pathname.replace(/^\//, '')
-      if (id) return { kind: 'iframe', src: `https://www.youtube.com/embed/${id}?rel=0` }
+      if (YT_ID_RE.test(id)) {
+        return { kind: 'iframe', src: `https://www.youtube-nocookie.com/embed/${id}?rel=0` }
+      }
+      return null
     }
-    if (parsed.hostname.includes('vimeo.com') && !parsed.hostname.includes('player.vimeo.com')) {
+    if (parsed.hostname === 'vimeo.com') {
       const id = parsed.pathname.split('/').filter(Boolean).pop()
       if (id && /^\d+$/.test(id)) return { kind: 'iframe', src: `https://player.vimeo.com/video/${id}` }
-    }
-    if (parsed.hostname.includes('drive.google.com')) {
-      const match = parsed.pathname.match(/\/file\/d\/([^/]+)/)
-      if (match) return { kind: 'iframe', src: `https://drive.google.com/file/d/${match[1]}/preview` }
+      return null
     }
   } catch {
-    // Ruta local relativa reproducida con <video>.
+    return null
   }
-  return { kind: 'video', src: trimmed }
+  return null
 }
 
 function IntroVideo() {
@@ -66,8 +80,9 @@ function IntroVideo() {
             className="courseVideoFrame"
             src={media.src}
             title="Video introductorio del OVA: Primeros pasos en la programación móvil con Kotlin"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
             referrerPolicy="strict-origin-when-cross-origin"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
         ) : (
@@ -77,7 +92,7 @@ function IntroVideo() {
         )}
       </div>
       <p className="videoExternalFallback">
-        <a href={INTRO_VIDEO_URL} target="_blank" rel="noreferrer" className="inlineLessonLink">
+        <a href={INTRO_VIDEO_URL} target="_blank" rel="noopener noreferrer" className="inlineLessonLink">
           Ver directamente en YouTube <ExternalLink size={14} aria-hidden="true" />
           <span className="visuallyHidden"> (se abre en una nueva pestaña)</span>
         </a>
@@ -354,7 +369,7 @@ export function Guide() {
                       </span>
                       {ref.url && (
                         <span className="apaLinkRow">
-                          <a href={ref.url} target="_blank" rel="noreferrer">
+                          <a href={ref.url} target="_blank" rel="noopener noreferrer">
                             {ref.url} <ExternalLink size={14} aria-hidden="true" />
                             <span className="visuallyHidden"> (se abre en una nueva pestaña)</span>
                           </a>
